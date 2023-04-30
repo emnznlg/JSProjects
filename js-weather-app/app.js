@@ -1,73 +1,77 @@
-const API_KEY = "dc75819e59914b85b88145527232804";
-const place = document.querySelector("#place");
-const date = document.querySelector("#date");
-const weatherIcon = document.querySelector(".weather-icon");
-const degree = document.querySelector("#degree");
-const degreeInfo = document.querySelector("#degree-info");
-const high = document.querySelector("#highest-temp");
-const low = document.querySelector("#lowest-temp");
-const wind = document.querySelector("#wind");
-const sunrise = document.querySelector("#sunrise");
-const sunset = document.querySelector("#sunset");
-const rain = document.querySelector("#rain");
+//VARIABLES
+const baseUrl = "http://api.weatherapi.com/v1/forecast.json";
+const API_KEY = "PRIVATE_API_KEY";
+const cityAndCountry = document.querySelector(".location-and-date__location");
+const currentDate = document.querySelector(".location-and-date__date");
+const currentWeatherImage = document.querySelector(".current-temperature__icon");
+const currentTempValue = document.querySelector(".current-temperature__value");
+const currentTempSummary = document.querySelector(".current-temperature__summary");
+const lowestTempStat = document.getElementById("low");
+const higestTempStat = document.getElementById("high");
+const windStat = document.getElementById("wind");
+const humidityStat = document.getElementById("humidity");
+const sunriseStat = document.getElementById("sunrise");
+const sunsetStat = document.getElementById("sunset");
 
+const responsePromise = getUserLocation()
+  .then((location) => {
+    return getWeatherData(location.lat, location.lon);
+  })
+  .then((data) => {
+    return data;
+  })
+  .catch((error) => console.error(error));
+
+//EVENT LISTENERS
+window.addEventListener("load", () => {
+  document.querySelector("html").style.filter = "none";
+});
+
+//FUNCTIONS
 function getUserLocation() {
   return new Promise((resolve, reject) => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          resolve({ lat, lon });
-        },
-        (error) => {
-          reject(`Geolocation error: ${error.message}`);
-        }
-      );
-    } else {
-      reject("Geolocation is not supported by this browser");
-    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        resolve({ lat: latitude, lon: longitude });
+      },
+      (error) => {
+        reject(error);
+      }
+    );
   });
 }
 
-function getWeatherDataCurrent(lat, lon) {
-  const url = `http://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}&aqi=no`;
+function getWeatherData(lat, lon) {
+  const url = `${baseUrl}?key=${API_KEY}&q=${lat},${lon}&days=6&aqi=no&alerts=no`;
   return fetch(url)
     .then((response) => response.json())
     .catch((error) => console.error(error));
 }
 
-getUserLocation()
-  .then((location) => {
-    return getWeatherDataCurrent(location.lat, location.lon);
-  })
-  .then((data) => {
-    place.innerHTML = data.location.name + ", " + data.location.country;
-    date.innerHTML = dayjs().locale("en").format("dddd, DD MMMM");
-    weatherIcon.src = data.current.condition.icon;
-    degree.innerHTML = data.current.temp_c + `&deg;`;
-    degreeInfo.innerHTML = data.current.condition.text;
-    high.innerHTML = data.current.condition.text;
-  })
-  .catch((error) => console.error(error));
-
-function getWeatherDataAdditionalInfo(lat, lon) {
-  const url = `http://api.weatherapi.com/v1/history.json?key=${API_KEY}&q=${lat},${lon}&dt=${dayjs().format("YYYY-MM-DD")}`;
-  return fetch(url)
-    .then((response) => response.json())
-    .catch((error) => console.error(error));
+function setCurrentWeatherData() {
+  responsePromise.then((data) => {
+    cityAndCountry.innerHTML = `${data.location.name}, ${data.location.country}`;
+    const dateUnformatted = data.location.localtime.split(" ")[0];
+    const date = dayjs(dateUnformatted, "YYYY-MM-DD");
+    currentDate.innerHTML = date.format("dddd, D MMMM");
+    currentWeatherImage.src = data.current.condition.icon;
+    currentTempValue.innerHTML = Math.floor(data.current.temp_c);
+    currentTempSummary.innerHTML = data.current.condition.text;
+  });
 }
 
-getUserLocation()
-  .then((location) => {
-    return getWeatherDataAdditionalInfo(location.lat, location.lon);
-  })
-  .then((data) => {
-    high.innerHTML = data.forecast.forecastday[0].day.maxtemp_c + `&deg;`;
-    low.innerHTML = data.forecast.forecastday[0].day.mintemp_c + `&deg;`;
-    wind.innerHTML = data.forecast.forecastday[0].day.maxwind_mph + ` kmh`;
-    sunrise.innerHTML = data.forecast.forecastday[0].astro.sunrise;
-    sunset.innerHTML = data.forecast.forecastday[0].astro.sunset;
-    rain.innerHTML = data.forecast.forecastday[0].day.totalprecip_mm + ` mm`;
-  })
-  .catch((error) => console.error(error));
+function setDailyWeatherStats() {
+  responsePromise.then((data) => {
+    higestTempStat.innerHTML = Math.floor(data.forecast.forecastday[0].day.maxtemp_c);
+    lowestTempStat.innerHTML = Math.floor(data.forecast.forecastday[0].day.mintemp_c);
+    humidityStat.innerHTML = `${data.current.humidity} %`;
+    windStat.innerHTML = `${data.current.wind_mph} mph`;
+    sunriseStat.innerHTML = data.forecast.forecastday[0].astro.sunrise;
+    sunsetStat.innerHTML = data.forecast.forecastday[0].astro.sunset;
+  });
+}
+
+//FUNCTION CALLS
+setCurrentWeatherData();
+setDailyWeatherStats();
