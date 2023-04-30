@@ -1,6 +1,6 @@
 //VARIABLES
 const baseUrl = "http://api.weatherapi.com/v1/forecast.json";
-const API_KEY = "10813b6b12ef4c47be194120233004";
+const API_KEY = "PRIVATE_API_KEY";
 const cityAndCountry = document.querySelector(".location-and-date__location");
 const currentDate = document.querySelector(".location-and-date__date");
 const currentWeatherImage = document.querySelector(".current-temperature__icon");
